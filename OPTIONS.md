@@ -28,3 +28,24 @@ true
 ```
 
 
+
+## services\.nix-shell-gui\.package
+
+
+
+Package that provides the nix-shell-gui executable\.
+
+
+
+*Type:*
+package
+
+
+
+*Default:*
+
+```nix
+<derivation nix-shell-gui-0.1.0>
+```
+
+
