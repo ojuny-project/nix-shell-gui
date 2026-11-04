@@ -93,7 +93,26 @@ remove, or update packages, does not manage channels, and does not provide
 access control. Launching needs network access unless every store path is
 already present. There is no launch progress or cancel control.
 
+## Releases
+
+A `v*` tag, a manual workflow run, or a commit on `main` whose title starts with
+a version such as `v0.1.0` builds `nix-shell-gui.bin` and `nix-shell-gui-flake.tar.gz`.
+
+The release flake installs the prebuilt bundle without compiling:
+
+```nix
+inputs.nix-shell-gui.url =
+  "tarball+https://github.com/ojuny-project/nix-shell-gui/releases/download/vX.Y.Z/nix-shell-gui-flake.tar.gz";
+```
+
+Then add `inputs.nix-shell-gui.packages.${pkgs.system}.nix-shell-gui` to `environment.systemPackages`.
+
+The generated flake exposes packages only. Use the source flake when you need
+the NixOS module.
+
+
 ## Documentation
+- [OPTIONS.md](OPTIONS.md) is the generated options reference.
 
 - [flake.nix](flake.nix) lists the package, app, devshell, check, and module.
 - [src/nix_shell_gui/classify.py](src/nix_shell_gui/classify.py) shows the launch-mode rules.
