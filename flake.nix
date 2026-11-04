@@ -9,11 +9,19 @@
   outputs = { self, nixpkgs, flake-utils }:
     let
       nixosModule = { config, lib, pkgs, ... }: {
-        options.services.nix-shell-gui.enable = lib.mkEnableOption
-          "nix-shell-gui, a GTK app store for temporarily launching nixpkgs packages";
+        options.services.nix-shell-gui = {
+          enable = lib.mkEnableOption
+            "nix-shell-gui, a GTK app store for temporarily launching nixpkgs packages";
+
+          package = lib.mkOption {
+            type = lib.types.package;
+            default = self.packages.${pkgs.system}.default;
+            description = "Package that provides the nix-shell-gui executable.";
+          };
+        };
 
         config = lib.mkIf config.services.nix-shell-gui.enable {
-          environment.systemPackages = [ self.packages.${pkgs.system}.default ];
+          environment.systemPackages = [ config.services.nix-shell-gui.package ];
         };
       };
     in
