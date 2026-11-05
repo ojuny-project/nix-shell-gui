@@ -8,6 +8,38 @@
 
   outputs = { self, nixpkgs, flake-utils }:
     let
+      binaryInfo =
+        if builtins.pathExists ./binary-url.json
+        then builtins.fromJSON (builtins.readFile ./binary-url.json)
+        else null;
+
+      desktopPostInstall = ''
+        install -Dm644 ${./nix-shell-gui.desktop} "$out/share/applications/nix-shell-gui.desktop"
+      '';
+
+      mkBinary = {
+        system,
+        tag ? (if binaryInfo == null then throw "nix-shell-gui: binary-url.json is missing" else binaryInfo.latest),
+        package ? "nix-shell-gui",
+      }: let
+        release =
+          if binaryInfo == null
+          then throw "nix-shell-gui: binary-url.json is missing"
+          else binaryInfo.releases.${tag} or (throw "nix-shell-gui: release '${tag}' is not recorded in binary-url.json");
+        packageInfo = release.packages.${package} or (throw "nix-shell-gui: package '${package}' is not recorded in release '${tag}'");
+        pkgs = import nixpkgs {inherit system;};
+      in
+        pkgs.callPackage ./nix/binary.nix {
+          name = package;
+          inherit (packageInfo) file;
+          info = {
+            inherit (binaryInfo) repo system;
+            inherit (release) tag version;
+            inherit (packageInfo) url hash;
+          };
+          postInstall = desktopPostInstall;
+        };
+
       nixosModule = { config, lib, pkgs, ... }: {
         options.services.nix-shell-gui = {
           enable = lib.mkEnableOption
@@ -94,7 +126,11 @@
         };
       in
       {
-        packages.default = nix-shell-gui;
+        packages = {
+          default = nix-shell-gui;
+        } // (if binaryInfo != null && binaryInfo.system == system then {
+          nix-shell-gui-binary = mkBinary {inherit system;};
+        } else {});
         apps.default = { type = "app"; program = "${nix-shell-gui}/bin/nix-shell-gui"; };
 
         devShells.default = pkgs.mkShell {
@@ -123,6 +159,7 @@
         '';
       }
     ) // {
+      lib.mkBinary = mkBinary;
       nixosModules.default = nixosModule;
     };
 }
