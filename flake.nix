@@ -164,6 +164,19 @@
           program = "${nix-shell-gui}/bin/nix-shell-gui";
         };
 
+        apps.ci = {
+          type = "app";
+          program = "${
+            pkgs.writeShellApplication {
+              name = "ci";
+              runtimeInputs = [ pkgs.nix ];
+              text = ''
+                exec nix flake check "$@"
+              '';
+            }
+          }/bin/ci";
+        };
+
         devShells.default = pkgs.mkShell {
           packages = [
             pkgs.nix
@@ -197,6 +210,7 @@
       }
     )
     // {
+      hydraJobs = self.checks;
       lib.mkBinary = mkBinary;
       nixosModules.default = nixosModule;
     };
