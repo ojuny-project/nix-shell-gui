@@ -47,7 +47,7 @@ def _write_if_changed(path: Path, text: str) -> None:
             return
     except OSError:
         pass
-    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text)
 
 
@@ -74,7 +74,6 @@ def load_catalog_cache() -> list[Package] | None:
 
 
 def save_catalog_cache(packages: list[Package]) -> None:
-    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     data = [
         {
             "attr_path": package.attr_path,
