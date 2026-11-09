@@ -130,3 +130,4 @@ must add or update a pytest case, run `pytest` from `nix develop`, and keep
 
 GNU General Public License version 3. The repository states no later-version
 grant. See [LICENSE](LICENSE).
+
