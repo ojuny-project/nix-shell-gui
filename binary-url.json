@@ -1,7 +1,7 @@
 {
   "repo": "ojuny-project/nix-shell-gui",
   "system": "x86_64-linux",
-  "latest": "v0.1.0-hotfix-1",
+  "latest": "v0.1.1",
   "releases": {
     "v0.1.0-hotfix-1": {
       "tag": "v0.1.0-hotfix-1",
@@ -11,6 +11,17 @@
           "file": "nix-shell-gui.bin",
           "url": "https://github.com/ojuny-project/nix-shell-gui/releases/download/v0.1.0-hotfix-1/nix-shell-gui.bin",
           "hash": "sha256-jHg2z7grvvP1bWRd9cuWLy2pwMpD8QNdgckIVQ0LDxs="
+        }
+      }
+    },
+    "v0.1.1": {
+      "tag": "v0.1.1",
+      "version": "0.1.1",
+      "packages": {
+        "nix-shell-gui": {
+          "file": "nix-shell-gui.bin",
+          "url": "https://github.com/ojuny-project/nix-shell-gui/releases/download/v0.1.1/nix-shell-gui.bin",
+          "hash": "sha256-uCSm7msNINvI/FV64mhHUhUKGmpxpYLtmaj6rimKbx4="
         }
       }
     }
