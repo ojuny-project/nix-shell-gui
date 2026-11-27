@@ -17,26 +17,38 @@ COMMAND_PLACEHOLDER = "{command}"
 COMMAND_STRING_PLACEHOLDER = "{command_s}"
 
 
-def launch_direct(nix_bin: str, attr_path: str) -> None:
-    subprocess.Popen(
-        [nix_bin, "run", f"nixpkgs#{attr_path}"],
-        stdin=subprocess.DEVNULL,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        start_new_session=True,
-    )
+def launch_direct(nix_bin: str, attr_path: str, log_path: str | None = None) -> subprocess.Popen:
+    return _spawn([nix_bin, "run", f"nixpkgs#{attr_path}"], log_path)
 
 
-def launch_in_terminal(nix_bin: str, attr_path: str, mode: str) -> None:
+def launch_in_terminal(
+    nix_bin: str, attr_path: str, mode: str, log_path: str | None = None
+) -> subprocess.Popen:
     action = "run" if mode == "tui" else "shell"
     nix_args = [nix_bin, action, f"nixpkgs#{attr_path}"]
-    subprocess.Popen(
-        expand_command(_terminal_template(), nix_args),
-        stdin=subprocess.DEVNULL,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        start_new_session=True,
-    )
+    return _spawn(expand_command(_terminal_template(), nix_args), log_path)
+
+
+def _spawn(command: list[str], log_path: str | None) -> subprocess.Popen:
+    if log_path is None:
+        return subprocess.Popen(
+            command,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+    log = open(log_path, "wb")
+    try:
+        return subprocess.Popen(
+            command,
+            stdin=subprocess.DEVNULL,
+            stdout=log,
+            stderr=subprocess.STDOUT,
+            start_new_session=True,
+        )
+    finally:
+        log.close()
 
 
 def expand_command(template: list[str], nix_args: list[str]) -> list[str]:

@@ -140,6 +140,9 @@ class NixAppStore:
         self._debounce_id = None
         self._rendered = 0
         self._store_count = store.store_entry_count()
+        self._launching = False
+        self._launch_process = None
+        self._launch_thread = None
 
         self.window = Gtk.Window(title="Nix App Store")
         self.window.set_default_size(960, 640)
@@ -204,9 +207,14 @@ class NixAppStore:
         self.launch_button.set_sensitive(False)
         self.launch_button.connect("clicked", self._on_launch)
 
+        self.spinner = Gtk.Spinner()
+        self.spinner.set_no_show_all(True)
+        self.spinner.set_visible(False)
+
         buttons = Gtk.Box(spacing=8)
         buttons.pack_start(self.fav_button, False, False, 0)
         buttons.pack_start(self.launch_button, False, False, 0)
+        buttons.pack_start(self.spinner, False, False, 0)
 
         details = Gtk.VBox(spacing=8)
         details.pack_start(self.detail_name, False, False, 0)
@@ -370,7 +378,7 @@ class NixAppStore:
         if self.selected is None or self.selected.attr_path != attr_path:
             return False
         self.detail_mode.set_text(MODE_LABELS[mode])
-        self.launch_button.set_sensitive(True)
+        self.launch_button.set_sensitive(not self._launching)
         return False
 
     def _on_fav_toggled(self, button: Gtk.ToggleButton) -> None:
@@ -385,18 +393,66 @@ class NixAppStore:
         self._refresh()
 
     def _on_launch(self, button: Gtk.Button) -> None:
-        if self.selected is None:
+        if self.selected is None or self._launching:
             return
         if not self.nix_bin:
             self.status_label.set_text("nix not found on PATH")
             return
         package = self.selected
-        mode = classify.classify(self.nix_bin, package.attr_path)
-        if mode == "gui":
-            terminal.launch_direct(self.nix_bin, package.attr_path)
+        log_path = str(store.launch_log_path(package.attr_path))
+        self._launching = True
+        self.spinner.set_visible(True)
+        self.spinner.start()
+        self.launch_button.set_sensitive(False)
+        self.status_label.set_text(f"Launching {package.name}...")
+        self._launch_thread = threading.Thread(
+            target=self._launch_worker,
+            args=(package, log_path),
+            daemon=True,
+        )
+        self._launch_thread.start()
+
+    def _launch_worker(self, package: Package, log_path: str) -> None:
+        try:
+            mode = classify.classify(self.nix_bin, package.attr_path)
+            if mode == "gui":
+                process = terminal.launch_direct(self.nix_bin, package.attr_path, log_path)
+            else:
+                process = terminal.launch_in_terminal(
+                    self.nix_bin, package.attr_path, mode, log_path
+                )
+        except OSError as error:
+            GLib.idle_add(self._launch_failed, package, log_path, str(error))
+            return
+        self._launch_process = process
+        GLib.idle_add(self._launch_started, package, log_path)
+        returncode = process.wait()
+        GLib.idle_add(self._launch_finished, package, log_path, returncode)
+
+    def _launch_started(self, package: Package, log_path: str) -> bool:
+        if self._launching:
+            self.status_label.set_text(f"Starting {package.name} (log: {log_path})")
+        return False
+
+    def _launch_failed(self, package: Package, log_path: str, message: str) -> bool:
+        self._finish_launch()
+        self.status_label.set_text(f"Launch failed: {message} (log: {log_path})")
+        return False
+
+    def _launch_finished(self, package: Package, log_path: str, returncode: int) -> bool:
+        self._finish_launch()
+        if returncode == 0:
+            self.status_label.set_text(f"Started {package.name} (log: {log_path})")
         else:
-            terminal.launch_in_terminal(self.nix_bin, package.attr_path, mode)
+            self.status_label.set_text(f"Launch failed (exit {returncode}), see {log_path}")
         GLib.timeout_add(30_000, self._settle_store_change)
+        return False
+
+    def _finish_launch(self) -> None:
+        self._launching = False
+        self.spinner.stop()
+        self.spinner.set_visible(False)
+        self.launch_button.set_sensitive(self.selected is not None)
 
 
 def main() -> None:

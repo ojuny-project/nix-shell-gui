@@ -8,8 +8,8 @@ present in `/nix/store`, stores favourites, and starts a selected package with
 ## Status
 
 Untested. The version in `pyproject.toml` and `flake.nix` is 0.1.0. The pytest
-suite covers classification, search parsing, store state, and terminal command
-expansion, but no manual run is recorded for this page.
+suite covers classification, search parsing, store state, terminal command
+expansion, and launch state, but no manual run is recorded for this page.
 
 ## Requirements
 
@@ -91,7 +91,9 @@ the wrong launcher. The catalogue comes from `nix search nixpkgs` and can be
 stale until the next successful load. The application does not install,
 remove, or update packages, does not manage channels, and does not provide
 access control. Launching needs network access unless every store path is
-already present. There is no launch progress or cancel control.
+already present. While a launch runs, the status line and a spinner show its
+state, and the child's output is written to
+`~/.config/nix-shell-gui/launch-<attr>.log`. There is no cancel control.
 
 ## Releases
 
@@ -123,8 +125,8 @@ the NixOS module.
 ## Contributing
 
 Open issues at <https://github.com/ojuny-project/nix-shell-gui/issues>. A patch
-must add or update a pytest case, run `pytest` from `nix develop`, and keep
-`nix flake check` passing.
+must add or update a pytest case, run `xvfb-run -a pytest` from `nix develop`,
+and keep `nix flake check` passing.
 
 ## License
 

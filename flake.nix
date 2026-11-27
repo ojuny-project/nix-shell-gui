@@ -84,6 +84,26 @@
         pkgs = nixpkgs.legacyPackages.${system};
         python = pkgs.python3;
 
+        gtkTypelibPath = pkgs.lib.makeSearchPath "lib/girepository-1.0" [
+          pkgs.glib
+          pkgs.gobject-introspection
+          pkgs.gtk3
+          pkgs.pango.out
+          pkgs.gdk-pixbuf
+          pkgs.harfbuzz
+          pkgs.at-spi2-core
+        ];
+        gtkLibraryPath = pkgs.lib.makeLibraryPath [
+          pkgs.glib
+          pkgs.gtk3
+          pkgs.pango
+          pkgs.cairo
+          pkgs.gdk-pixbuf
+          pkgs.atk
+          pkgs.harfbuzz
+        ];
+        gsettingsSchemaDir = "${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}";
+
         nix-shell-gui = python.pkgs.buildPythonApplication {
           pname = "nix-shell-gui";
           version = "0.1.0";
@@ -186,9 +206,15 @@
             python.pkgs.pytest
             pkgs.pyright
             pkgs.ruff
+            pkgs.xvfb-run
+            pkgs.xauth
           ];
           shellHook = ''
-            export PYTHONPATH="${nix-shell-gui}/${python.sitePackages}"
+            export PYTHONPATH="${nix-shell-gui}/${python.sitePackages}:${python.pkgs.pygobject3}/${python.sitePackages}"
+            export GI_TYPELIB_PATH="${gtkTypelibPath}"
+            export LD_LIBRARY_PATH="${gtkLibraryPath}"
+            export GSETTINGS_SCHEMA_DIR="${gsettingsSchemaDir}"
+            export GSETTINGS_BACKEND=memory
           '';
         };
 
@@ -198,13 +224,19 @@
               nativeBuildInputs = [
                 python
                 python.pkgs.pytest
+                pkgs.xvfb-run
+                pkgs.xauth
               ];
             }
             ''
-              export PYTHONPATH="${nix-shell-gui}/${python.sitePackages}"
+              export PYTHONPATH="${nix-shell-gui}/${python.sitePackages}:${python.pkgs.pygobject3}/${python.sitePackages}"
+              export GI_TYPELIB_PATH="${gtkTypelibPath}"
+              export LD_LIBRARY_PATH="${gtkLibraryPath}"
+              export GSETTINGS_SCHEMA_DIR="${gsettingsSchemaDir}"
+              export GSETTINGS_BACKEND=memory
               cp -r ${./.}/tests tests
               cd tests
-              pytest -q
+              xvfb-run -a pytest -q
               mkdir -p $out
             '';
       }

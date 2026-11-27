@@ -41,6 +41,12 @@ def save_favourites(favourites: set[str]) -> None:
     FAVOURITES_FILE.write_text(json.dumps(sorted(favourites), indent=2))
 
 
+def launch_log_path(attr_path: str) -> Path:
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    safe_name = attr_path.replace("/", "-")
+    return CONFIG_DIR / f"launch-{safe_name}.log"
+
+
 def _write_if_changed(path: Path, text: str) -> None:
     try:
         if path.read_text() == text:
